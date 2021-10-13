@@ -6,10 +6,12 @@ Before you use that tools, read the docs about api rate limit https://urlscan.io
 
 ## Install
 ```
-▶ go get github.com/channyein1337/bcrawl
+▶ go install github.com/channyein1337/bcrawl@latest
 ```
 ```
 ▶ git clone https://github.com/channyein1337/bcrawl.git
+▶ go build bcrawl.go
+▶ sudo mv bcrawl /usr/bin/
 ```
 
 ## Usage
