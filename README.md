@@ -18,7 +18,7 @@ Before you use that tools, read the docs about api rate limit https://urlscan.io
 For a single domain
 ![](https://raw.githubusercontent.com/channyein1337/bcrawl/main/bcrawl.png)
 ```
-▶ cho hackerone.com | bcrawl
+▶ echo hackerone.com | bcrawl
 ```
 For multiple domains
 ![](https://raw.githubusercontent.com/channyein1337/bcrawl/main/bcrawl2.png)
