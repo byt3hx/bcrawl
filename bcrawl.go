@@ -53,8 +53,47 @@ type Data struct {
 	HasMore bool `json:"has_more"`
 }
 
-func unique(strSlice []string) []string {
+var apiKey = flag.String("apikey", "", "Your API key")
+var apiKeyFile = flag.String("f", "", "File containing API keys")
 
+var apiKeyCount = 0
+var apiKeys []string
+var currentKeyIndex = 0
+
+func loadAPIKeysFromFile(filepath string) {
+	file, err := os.Open(filepath)
+	if err != nil {
+		fmt.Println(err)
+		os.Exit(1)
+	}
+	defer file.Close()
+
+	scanner := bufio.NewScanner(file)
+	for scanner.Scan() {
+		apiKeys = append(apiKeys, scanner.Text())
+	}
+
+	if err := scanner.Err(); err != nil {
+		fmt.Println(err)
+		os.Exit(1)
+	}
+}
+
+func getAPIKey() string {
+	if apiKeyCount >= 1000000 && len(apiKeys) > 0 {
+		currentKeyIndex = (currentKeyIndex + 1) % len(apiKeys)
+		apiKeyCount = 0
+	}
+	apiKeyCount++
+	if len(apiKeys) > 0 && currentKeyIndex < len(apiKeys) {
+		return apiKeys[currentKeyIndex]
+	}
+	return *apiKey
+}
+
+// Your Data type declaration
+
+func unique(strSlice []string) []string {
 	keys := make(map[string]bool)
 	list := []string{}
 
@@ -67,7 +106,6 @@ func unique(strSlice []string) []string {
 	return list
 }
 
-
 func scan(domain string) ([]string, error) {
 	url := fmt.Sprintf("https://urlscan.io/api/v1/search/?q=%s" , domain)
 
@@ -78,7 +116,7 @@ func scan(domain string) ([]string, error) {
 	}
 
 	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("API-Key", "")
+	req.Header.Set("API-Key", getAPIKey())
 
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
@@ -104,9 +142,21 @@ func scan(domain string) ([]string, error) {
 		fmt.Println(r.Page.URL)
 		fmt.Println(r.Task.URL)
 	}
-	return f,nil
+	return f, nil
 }
+
 func main() {
+	flag.Parse()
+
+	if *apiKey == "" && *apiKeyFile == "" {
+		fmt.Println("Either an API key or a file with API keys must be provided.")
+		os.Exit(1)
+	}
+
+	if *apiKeyFile != "" {
+		loadAPIKeysFromFile(*apiKeyFile)
+	}
+
 	var domains []string
 	if flag.NArg() > 0 {
 		domains = []string{flag.Arg(0)}
@@ -123,7 +173,7 @@ func main() {
 	results := make(chan string)
 
 	var wg sync.WaitGroup 
-	for _, domain := range domains {
+	for i, domain := range domains {
 		wg.Add(1)
 		go func (domain string) {
 			sub , err := scan(domain)
@@ -136,6 +186,10 @@ func main() {
 			}
 			defer wg.Done()
 		}(domain)
+
+		if i != 0 && i % 120 == 0 {
+			currentKeyIndex = (currentKeyIndex + 1) % len(apiKeys)
+		}
 	}
 	wg.Wait()
 	close(results)
